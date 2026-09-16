@@ -31,14 +31,14 @@ gitlite/
 │   ├── src/
 │   ├── tester.py
 │   └── Makefile
-├── CMakeLists.txt                  # 需自行编写
+├── CMakeLists.txt                  # 已提供 ACMOJ 配置，其余内容需自行补全
 └── main.cpp
 ```
 
 在本次大作业中，我们只提供了`Utils`与`GitliteException`两个文件，它们中的实用方法可以来执行一些主要与文件系统相关的任务，以便可以专注于项目的逻辑而不是处理操作系统的特殊性。
 
 同时，我们为你添加了一个`main.cpp`、两个建议类`Commit`和
-`Repository`，以及`main.cpp`所依赖的命令门面类`SomeObj`（骨架中已给出与`main.cpp`匹配的方法签名，实现为空，需要你自行补全），以帮助入门。`main.cpp`及`SomeObj.h`中的公开方法签名是评测接口，请勿修改；你可以自由调整其余类的设计。你还需要自行编写`CMakeLists.txt`完成项目的编译与运行。为了评测正常运行，编译后生成的可执行文件必须位于`gitlite/build/gitlite`。
+`Repository`，以及`main.cpp`所依赖的命令门面类`SomeObj`（骨架中已给出与`main.cpp`匹配的方法签名，实现为空，需要你自行补全），以帮助入门。`main.cpp`及`SomeObj.h`中的公开方法签名是评测接口，请勿修改；你可以自由调整其余类的设计。仓库已提供一个仅包含基本声明和 ACMOJ 必需配置的`CMakeLists.txt`骨架，你需要在标记的区域内自行补全编译配置，并创建名称为`gitlite`的可执行目标。一次正常构建必须同时生成用于本地测试的`gitlite/build/gitlite`和用于 ACMOJ Git 仓库评测的仓库根目录`gitlite/code`。
 
 除此之外，你可以编写其他任意类来支持你的项目，或者根据需要删除我们建议的类。但**请勿**使用任何外部代码，也**不要**使用 C++ 以外的任何编程语言。你可以使用所有你想要的 C++ 标准库，以及我们提供的实用程序，在此我们列举若干可能有用的库函数：
 
@@ -96,7 +96,15 @@ gitlite/
 
 请勿打印任何除规范要求之外的内容。如果你打印任何超出要求的内容，我们的某些自动评分测试可能会崩溃。
 
-三、为了使我们的评测机正常工作，我们要求你将编译生成的可执行文件放到`gitlite/build`文件夹下。如果可以的话，请通过修改环境变量`PATH`的方式使得我们能够在命令行像
+三、为了使本地测试和 ACMOJ Git 仓库评测正常工作，你的`CMakeLists.txt`必须满足以下要求：
+
+- 使用 C++17 或更高标准编译项目；
+- 执行`cmake -S . -B build && cmake --build build`后生成`build/gitlite`，供本地测试器调用；
+- 每次成功构建后，在仓库根目录生成同一可执行程序的副本`code`，供 ACMOJ 获取编译产物；
+- `code`必须是可执行的普通文件，但它是构建产物，无需提交到 Git 仓库；
+- 所有新增的`.cpp`源文件都必须被加入构建目标，否则本地可能存在的旧目标文件会掩盖漏编译问题。
+
+下发的`CMakeLists.txt`末尾已经包含生成`code`的必要命令，请勿删除或移动到`gitlite`目标之前。如果可以的话，请通过修改环境变量`PATH`的方式使得我们能够在命令行像
 `git`一样运行`gitlite add filename`而不是`./gitlite add filename`，一个可能的方法是：
 
 ```bash
@@ -608,18 +616,17 @@ diff --gitlite a/f.txt b/f.txt
 
 ### 编译与运行
 
-本项目将在 wsl 中运行，请你在完成对应部分后打开 wsl 依次执行以下命令：
+本项目将在 WSL/Linux 中运行。请先在下发的`CMakeLists.txt`中补全编译配置，确保在 ACMOJ 配置块之前创建名为`gitlite`的可执行目标。随后在项目根目录执行：
 
 ```bash
-cd gitlite         # 如果当前目录已在gitlite 下可跳过
-rm -rf build/
-mkdir build
-cd build
-cmake ..
-make
+cd gitlite  # 如果当前目录已经是项目根目录，可以跳过
+cmake -S . -B build
+cmake --build build
+test -x build/gitlite
+test -x code
 ```
 
-然后打开命令行，用命令`gitlite`就可以开始手动调试各个命令；
+最后两个命令没有输出且退出状态为 0，才表示两个评测所需的可执行文件均已正确生成。然后可以使用`build/gitlite`手动调试各个命令；
 
 同时我们在下发的`testing`文件中提供了部分样例供各位调试，这也会作为最后的量化得分结果，具体操作是：
 
