@@ -706,4 +706,4 @@ All tests passed!
 
 感谢2024级蒋欣桐在完成这个项目后提供的反馈以及为README做出的几十条修改，以及2024级ACM 丁宣铭, 2025级段则谦为README提出的宝贵的修改意见。
 
-如有问题请联系本项目的发布者`_serendipity`, 他的邮箱地址是: `serendipity_lin@sjtu.edu.cn`（也可以在微信群中找到）
+`_serendipity` 对README和项目进行了大量的更改，并且对测试点进行了加强，有问题可以直接联系，他的邮箱地址是: `serendipity_lin@sjtu.edu.cn`（26级也可以在微信群中找到 `_serendipity`）
