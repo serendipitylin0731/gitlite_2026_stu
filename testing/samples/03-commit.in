@@ -1,0 +1,12 @@
+# Goal: commit a file and restore its committed contents.
+> init
+<<<
++ f.txt wug.txt
+> add f.txt
+<<<
+> commit "add f"
+<<<
++ f.txt notwug.txt
+> checkout -- f.txt
+<<<
+= f.txt wug.txt

@@ -1,0 +1,19 @@
+# Goal: create a branch and show it in status.
+> init
+<<<
+> branch dev
+<<<
+> status
+=== Branches ===
+dev
+*master
+
+=== Staged Files ===
+
+=== Removed Files ===
+
+=== Modifications Not Staged For Commit ===
+
+=== Untracked Files ===
+
+<<<

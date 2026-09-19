@@ -1,0 +1,10 @@
+# Goal: rm-remote removes an existing remote name.
+> init
+<<<
+> add-remote origin ../remote/.gitlite
+<<<
+> rm-remote origin
+<<<
+> rm-remote origin
+A remote with that name does not exist.
+<<<

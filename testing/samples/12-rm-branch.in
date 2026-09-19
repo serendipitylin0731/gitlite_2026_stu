@@ -1,0 +1,10 @@
+# Goal: remove an existing branch.
+> init
+<<<
+> branch dev
+<<<
+> rm-branch dev
+<<<
+> checkout dev
+No such branch exists.
+<<<

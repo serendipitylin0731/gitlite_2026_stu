@@ -1,0 +1,19 @@
+# Goal: fetch copies a remote branch and its file.
+C REMOTE
+> init
+<<<
++ f.txt wug.txt
+> add f.txt
+<<<
+> commit "remote file"
+<<<
+C LOCAL
+> init
+<<<
+> add-remote origin ../REMOTE/.gitlite
+<<<
+> fetch origin master
+<<<
+> checkout origin/master
+<<<
+= f.txt wug.txt

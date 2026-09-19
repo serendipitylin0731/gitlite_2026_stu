@@ -1,0 +1,21 @@
+# Goal: ignored untracked files are neither staged nor shown by status.
+> init
+<<<
++ .gitliteignore ignore-track.txt
++ cache.tmp wug.txt
+> add cache.tmp
+<<<
+> status
+=== Branches ===
+*master
+
+=== Staged Files ===
+
+=== Removed Files ===
+
+=== Modifications Not Staged For Commit ===
+
+=== Untracked Files ===
+.gitliteignore
+
+<<<

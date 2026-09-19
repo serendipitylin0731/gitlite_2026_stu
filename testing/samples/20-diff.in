@@ -1,0 +1,17 @@
+# Goal: diff prints a one-line working-tree modification.
+> init
+<<<
++ f.txt wug.txt
+> add f.txt
+<<<
+> commit "add f"
+<<<
++ f.txt notwug.txt
+> diff
+diff --gitlite a/f.txt b/f.txt
+--- a/f.txt
++++ b/f.txt
+@@ -1,1 +1,1 @@
+-This is a wug.
++This is not a wug.
+<<<

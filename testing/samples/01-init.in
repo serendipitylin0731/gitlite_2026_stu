@@ -1,0 +1,7 @@
+# Goal: initialize a repository and reject a second initialization.
+> init
+<<<
+E .gitlite
+> init
+A Gitlite version-control system already exists in the current directory.
+<<<

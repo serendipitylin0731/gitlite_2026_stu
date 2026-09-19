@@ -1,0 +1,19 @@
+# Goal: merge fast-forwards master to a descendant branch.
+> init
+<<<
+> branch feature
+<<<
+> checkout feature
+<<<
++ f.txt wug.txt
+> add f.txt
+<<<
+> commit "feature file"
+<<<
+> checkout master
+<<<
+* f.txt
+> merge feature
+Current branch fast-forwarded.
+<<<
+= f.txt wug.txt

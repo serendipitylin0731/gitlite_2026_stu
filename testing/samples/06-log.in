@@ -1,0 +1,21 @@
+# Goal: log shows the current commit followed by the initial commit.
+> init
+<<<
++ f.txt wug.txt
+> add f.txt
+<<<
+> commit "add f"
+<<<
+D DATE "Date: \w{3} \w{3} \d{2} \d{2}:\d{2}:\d{2} \d{4} [-+]\d{4}"
+> log
+===
+commit [a-f0-9]{40}
+${DATE}
+add f
+
+===
+commit [a-f0-9]{40}
+${DATE}
+initial commit
+
+<<<*

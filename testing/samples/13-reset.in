@@ -1,0 +1,39 @@
+# Goal: reset moves the current branch back to an earlier commit.
+> init
+<<<
++ f.txt wug.txt
+> add f.txt
+<<<
+> commit "first"
+<<<
++ f.txt notwug.txt
+> add f.txt
+<<<
+> commit "second"
+<<<
+D DATE "Date: \w{3} \w{3} \d{2} \d{2}:\d{2}:\d{2} \d{4} [-+]\d{4}"
+> log
+===
+commit ([a-f0-9]{40})
+${DATE}
+second
+
+===
+commit ([a-f0-9]{40})
+${DATE}
+first
+
+(?:.|\n)*
+<<<*
+D FIRST "${2}"
+> reset ${FIRST}
+<<<
+= f.txt wug.txt
+> log
+===
+commit ${FIRST}
+${DATE}
+first
+
+(?:.|\n)*
+<<<*
