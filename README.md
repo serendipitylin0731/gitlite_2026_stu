@@ -69,6 +69,8 @@
 
 愿你一切顺利！如果遇到其他问题，我们将会统一收集并公开发布！
 
+---
+
 ## 任务
 
 ### 总体要求
@@ -97,15 +99,17 @@
 
 ```bash
 mkdir -p ~/bin
-cp /path/to/gitlite/build/gitlite ~/bin/  # 替换为你的实际路径
-ls -la ~/bin/
-echo $PATH
+cp /path/to/your/project/build/gitlite ~/bin/  # 替换为编译所得 gitlite 的实际绝对路径
 echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+which gitlite
 ```
 
 修改环境变量只是为了方便你在命令行进行本地调试，如果你担心操作不当造成本地环境变量崩溃的话，可以不做修改。
 
 如果遇上了问题并在查询资料后无果，欢迎与助教联系。为行文方便，下文中的所有命令均以 **修改 `PATH` 后** 的命令为准.
+
+---
 
 ### `.gitliteignore`
 
@@ -129,6 +133,8 @@ Gitlite 支持在工作目录根目录放置一个可选的`.gitliteignore`文�
 3. 已被当前提交跟踪或已暂存待添加的文件不受忽略规则影响，仍可被再次`add`，其修改和删除也仍应正常出现在`status`中。换言之，把一个文件名写入`.gitliteignore`不会自动取消跟踪或取消暂存。
 4. 在切换分支、`reset`或`merge`时，被忽略的未跟踪文件不触发`There is an untracked file in the way; ...`错误；如果目标提交在同一路径保存了文件，原有被忽略文件可以被目标版本覆盖。
 5. `.gitliteignore`自身只是普通工作文件：可以被暂存和提交，也可以被其中的规则忽略。文件不存在时，Gitlite 的其他行为与原规范完全相同。每次启动命令时均读取当前工作目录中的最新规则。
+
+---
 
 ### Subtask1
 
@@ -216,6 +222,8 @@ Gitlite 支持在工作目录根目录放置一个可选的`.gitliteignore`文�
 - 如果文件既没有被暂存也没有被 `current commit` 跟踪，则打印错误消息`No reason to remove the file.`后退出。
 
 **⚠ WARNING:** 这个操作会直接对工作目录的文件进行修改或覆盖，在调试该操作时请谨慎进行。
+
+---
 
 ### Subtask2
 
@@ -319,6 +327,8 @@ Merged development into master.
 
 **⚠ WARNING:** 这个操作会直接对工作目录的文件进行修改或覆盖，在调试该操作时请谨慎进行。
 
+---
+
 ### Subtask3
 
 在本子任务中，你需要完成`status` 和 `checkout` 命令的进阶用法。
@@ -372,6 +382,8 @@ random.stuff
 
 **⚠ WARNING:** 这个操作会直接对工作目录的文件进行修改或覆盖，在调试该操作时请谨慎进行。
 
+---
+
 ### Subtask4
 
 在本子任务中，你需要完成`branch` ,`rm-branch` 和`reset`命令。
@@ -413,6 +425,8 @@ random.stuff
 **HINT: 该命令本质上是 checkout 一个任意提交，它也会更改当前分支的头。实现该命令时，请学会复用前面的代码。**
 
 **⚠ WARNING:** 这个操作会直接对工作目录的文件进行修改或覆盖，在调试该操作时请谨慎进行。
+
+---
 
 ### Subtask5
 
@@ -473,6 +487,8 @@ contents of file in given branch
 当多个失败情况同时满足时，按上述列出顺序报告第一个失败情况。
 
 **⚠ WARNING:** 这个操作会直接对工作目录的文件进行修改或覆盖，在调试该操作时请谨慎进行。
+
+---
 
 ### Subtask6 (Bonus)
 
@@ -602,6 +618,8 @@ diff --gitlite a/f.txt b/f.txt
 
 - 如果不存在具有给定 id 的提交，则打印错误信息`No commit with that id exists.`后退出。
 
+---
+
 #### 设计文档
 
 请新增`DESIGN.md`末尾新增“设计文档”章节来说明你的项目设计思路。设计文档可以包括：
@@ -614,38 +632,52 @@ diff --gitlite a/f.txt b/f.txt
 
 你无需事无巨细，也无需逐行解析代码，上方的三类也只是建议而并非必需；这个`DESIGN.md`是希望你撰写一份说明文档来帮助我们，也是帮助你了解你的设计思路
 
+---
+
 ## 须知
 
 ### 截止时间
 
 第十二周周三（12.2）16:30
 
-### 编译与运行与提交
+### 编译运行与提交
 
 项目可以进行简单的本地调试，也可以提交到 github 仓库后直接在 [ACMOJ-3226](https://acm.sjtu.edu.cn/OnlineJudge/problem/3226) 上直接测评，最终评分以 ACMOJ-3226 为准
 
-本地测评通过不代表 OJ 上测评可以全部通过，你可以在 OJ 提交后的反馈中发现自己没有通过的测试点功能，所以推荐写完某功能后先本地简单测试，再到 OJ 上跑强测试，原则上 OJ 测试点不公开，请大家注意输出的格式规范，有测试点实在过不了可以联系助教请求支援
+本地测评通过不代表 OJ 上测评可以全部通过，你可以在 OJ 提交后的反馈中发现自己没有通过的测试点功能，所以推荐写完某功能后先本地简单测试，通过后及时到 OJ 上跑强测试，原则上 OJ 测试点不公开，请大家注意输出的格式规范，有测试点实在过不了可以联系助教请求支援
 
 本地测评时本项目将在 wsl 中运行，请你在完成对应部分后打开 wsl 依次执行以下命令：
 
 ```bash
+# 根目录下
 rm -rf build/
-mkdir build
+cmake -B build
+cmake --build build
 cd build
-cmake ..
-make
 ```
 
 然后打开命令行，用命令`gitlite`（或`./gitlite`）就可以开始手动调试各个命令；
 
-同时我们在下发的`testing/`文件中提供了一组简化样例，供各位进行本地基础自测，具体操作是：
+同时我们在下发的`testing/`文件中提供了一组简化样例，它并不能完整的检测所有的复杂功能，因此我们希望你可以自己进行手动调试测试其余的边界情况，或者自己修改数据点变成更好的测试，评测脚本设计了接口供各位进行本地基础自测，可以测试任意的 `.in` 文件，具体操作是：
 
 ```bash
+# 在根目录下
 cd testing
+
+# 测试全部测试点
 python3 tester.py samples/*.in
+
+# 测试单个测试点
+python3 tester.py samples/02-add.in
+
+# 测试多个指定测试点
+python3 tester.py samples/02-add.in samples/03-commit.in
+
+# 测试编号 01～05 （可以用正则表达式测试任意多组数据点）
+python3 tester.py samples/0[1-5]-*.in
 ```
 
-注意`tester.py`默认调用的是`gitlite/build`文件夹下的可执行文件，你需要先编译后再调试。这套学生自测包含 20 个相互独立的基础测试，每个测试只检查一个命令或功能是否能够正确完成基本操作。学生自测不计算课程分数，只输出通过数量；正式评分仍以 OJ 的隐藏测试为准。命令输出不匹配时，`testing/out.txt`会保存 expected、actual 和 unified diff。如果全部通过，终端输出如下：
+注意`tester.py`默认调用的是`./build/`文件夹下的可执行文件，你需要先编译后再调试。这套学生自测包含 20 个相互独立的基础测试，每个测试只检查一个命令或功能是否能够正确完成基本操作。学生自测不计算课程分数，只输出通过数量；正式评分仍以 OJ 的隐藏测试为准。命令输出不匹配时，`testing/out.txt`会保存 expected、actual 和 unified diff。如果全部通过，终端输出如下：
 
 ```text
 01-init: OK
@@ -706,4 +738,4 @@ All tests passed!
 
 感谢2024级蒋欣桐在完成这个项目后提供的反馈以及为README做出的几十条修改，以及2024级ACM 丁宣铭, 2025级段则谦为README提出的宝贵的修改意见。
 
-`_serendipity` 对README和项目进行了大量的更改，并且对测试点进行了加强，有问题可以直接联系，他的邮箱地址是: `serendipity_lin@sjtu.edu.cn`（26级也可以在微信群中找到 `_serendipity`）
+`_serendipity` 对README和项目代码进行了大量的更改，并且修改了测试数据，对测试点进行了加强，有问题可以直接联系，他的邮箱地址是: `serendipity_lin@sjtu.edu.cn`（26级也可以在微信群中找到 `_serendipity`）
