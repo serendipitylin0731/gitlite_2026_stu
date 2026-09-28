@@ -13,6 +13,8 @@
 
 **请先阅读[Git傻瓜教程](https://notes.sjtu.edu.cn/SG0OCEhHRCqcsE30CToLxA)！**
 
+文档可以在[水源文档](https://notes.sjtu.edu.cn/SY1ABBcOQxSEcg3c7wP7Kg)处查看
+
 ---
 
 ## 项目骨架
@@ -432,9 +434,11 @@ contents of file in given branch
 
 Bonus 分为两个可独立完成的类别：`remote`（包括`add-remote`、`rm-remote`、`push`、`fetch`和`pull`）提供 20 个原始分，`diff + show`合计提供 20 个原始分，共有 40 个原始分。**Bonus 最终最多计入 20 分；完成任意一个类别即可获得 Bonus 满分，两个类别都完成仍只计 20 分。**
 
+其中的
+
 ---
 
-#### `remote` 总体要求
+### Bonus-1: `remote`
 
 `Gitlite`中的远程仓库与本地仓库别无二致；由于调试能力限制，我们采用保存在本地的非当前仓库作为远程仓库。提取其分支时，本地分支名形如`origin/master`（即包含`/`），请确保你的分支存储与解析能正确处理这种带`/`的分支名。若`push`、`fetch`或`pull`使用了尚未通过`add-remote`添加的远程名，也统一报告`Remote directory not found.`。
 
@@ -479,6 +483,7 @@ Bonus 分为两个可独立完成的类别：`remote`（包括`add-remote`、`rm
 **⚠ WARNING:** 这个操作会直接对工作目录的文件进行修改或覆盖，在调试该操作时请谨慎进行。
 
 ---
+### Bonus-2 `diff` + `show`
 
 #### `diff`（用法：`gitlite diff ([revision]) ([revision])`）
 
