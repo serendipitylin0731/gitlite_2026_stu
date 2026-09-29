@@ -27,7 +27,7 @@ void SomeObj::log() {
 }
 
 void SomeObj::globalLog() {
-    // TODO: 打印所有提交，顺序不限
+    // TODO: 从所有本地分支、远程跟踪分支和标签出发，输出全部可达提交并按规范排序
 }
 
 void SomeObj::listTags() {
@@ -80,7 +80,7 @@ void SomeObj::merge(const std::string&) {
     // TODO: 将指定分支合并到当前分支
 }
 
-// ---------------- Bonus：add-remote / rm-remote / push / fetch / pull ----------------
+// ---------------- Bonus-1：add-remote / rm-remote / push / fetch / pull ----------------
 
 void SomeObj::addRemote(const std::string&, const std::string&) {
     // TODO: 保存远程仓库地址
@@ -102,7 +102,7 @@ void SomeObj::pull(const std::string&, const std::string&) {
     // TODO: fetch 后将取回的分支合并到当前分支
 }
 
-// ---------------- Bonus：diff / show ----------------
+// ---------------- Bonus-2：diff / show ----------------
 
 void SomeObj::diff() {
     // TODO: 比较当前提交与工作目录并输出差异，无差异时不输出
