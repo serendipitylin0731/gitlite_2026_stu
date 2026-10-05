@@ -4,7 +4,7 @@ project(gitlite LANGUAGES CXX)
 # TODO: 请在此处自行完成项目的编译配置。
 #
 # 要求：
-# 1. 创建一个名称为 gitlite 的可执行目标；
+# 1. 在 build/ 中创建一个名称为 gitlite 的可执行目标；
 # 2. 将 main.cpp 和所有需要的实现文件加入该目标；
 # 3. 自行设置所需的 C++ 标准、头文件目录和编译选项。
 
