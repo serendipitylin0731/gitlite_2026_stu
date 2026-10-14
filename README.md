@@ -245,7 +245,7 @@ Merged development into master.
 
 `global-log`的作用类似真实 Git 中的`git log --all`，使用与`log`相同的单条提交格式。它从所有本地分支、远程跟踪分支和标签指向的提交出发，沿每个提交的全部父引用遍历，输出由这些引用可达的所有提交，而不只输出当前分支的第一父历史链。同一个提交即使能从多个引用到达，也只输出一次；已经不能从任何分支或标签到达的提交对象不输出。所有提交按提交时间从新到旧输出；提交时间相同时，按完整提交 ID 的字典序从小到大输出。
 
-**提示：**先从所有本地分支、远程跟踪分支和标签收集遍历起点，再沿每个提交的全部父引用遍历。遍历时需要对提交去重，并在输出前按上述规则排序。`Utils.cpp`中的目录工具可以辅助读取你所设计的引用存储，但仅枚举提交对象目录并不等价于查找可达提交。
+**提示：** 先从所有本地分支、远程跟踪分支和标签收集遍历起点，再沿每个提交的全部父引用遍历。遍历时需要对提交去重，并在输出前按上述规则排序。`Utils.cpp`中的目录工具可以辅助读取你所设计的引用存储，但仅枚举提交对象目录并不等价于查找可达提交。
 
 ---
 
@@ -441,7 +441,7 @@ contents of file in given branch
 
 ### Bonus
 
-Bonus 分为两个可独立完成的类别：`remote`（包括`add-remote`、`rm-remote`、`push`、`fetch`和`pull`）与`diff + show`，每类各有 20 个原始分，并分别具有独立的 robust 测试。**Bonus 最终得分取两个类别原始得分中的较高者，即`max(remote, diff + show)`；两个类别的部分分不会相加。完成任意一个类别即可获得 Bonus 满分 20 分。**
+Bonus 分为两个可独立完成的类别：`remote`（包括`add-remote`、`rm-remote`、`push`、`fetch`和`pull`）与`diff + show`，每类各有 15 个原始分，并分别具有独立的 robust 测试。**Bonus 最终得分取两个类别原始得分中的较高者，即`max(remote, diff + show)`；两个类别的部分分不会相加。完成任意一个类别即可获得 Bonus 满分 15 分。**
 
 #### Bonus 友情提示：
 
@@ -567,7 +567,7 @@ diff --gitlite a/f.txt b/f.txt
 
 项目可以进行简单的本地调试，也可以提交到 github 仓库后直接在 [ACMOJ-3226](https://acm.sjtu.edu.cn/OnlineJudge/problem/3226) 上直接测评，最终评分以 [ACMOJ-3226](https://acm.sjtu.edu.cn/OnlineJudge/problem/3226) 为准
 
-本地测评通过不代表 OJ 上测评可以全部通过，你可以在 OJ 提交后的反馈中发现自己没有通过的测试点功能，所以推荐写完某功能后先本地简单测试，通过后及时到 OJ 上跑强测试，原则上 OJ 测试点不公开，**请大家注意输出的格式规范**，有测试点实在过不了可以联系助教请求支援
+下发的本地测试点与当前 ACMOJ-3226 使用的 77 个测试点一致；建议完成一个功能后先运行对应测试，再提交 OJ 核对构建和运行环境。**请大家注意输出的格式规范**；有测试点实在过不了可以联系助教请求支援。
 
 **提示：某些测试点不通过不一定是因为它直接对应的命令写错了，有可能是它的前置命令在设计时没有正确对接后续功能，所以请放远目光，同时检查前置命令：）**
 
@@ -585,86 +585,56 @@ cd build
 
 然后打开命令行，用命令`gitlite`（或`./gitlite`）就可以开始手动调试各个命令；
 
-同时我们在下发的`testing/`文件中提供了一组简化样例，它并不能完整的检测所有的复杂功能，因此我们希望你可以自己进行手动调试测试其余的边界情况，或者自己修改数据点变成更好的测试，评测脚本设计了接口供各位进行本地基础自测，可以测试任意的 `.in` 文件，具体操作是：
+`testing/samples/` 包含当前 ACMOJ-3226 的全部 77 个测试用例，`testing/src/` 是这些测试引用的文件素材。`testing/tester.py` 使用相同的测试内容、前置依赖和分值配置在本地运行；OJ 则用 C++ checker 执行这些测试。请先编译生成 `build/gitlite`，再运行：
 
 ```bash
-# 在根目录下
+# 在项目根目录下
 cd testing
 
-# 测试全部测试点
+# 运行全部 77 个测试点
 python3 tester.py samples/*.in
 
-# 测试单个测试点
-python3 tester.py samples/02-add.in
+# 运行单个测试点；脚本会自动运行它的前置测试
+python3 tester.py samples/3-status-10.in
 
-# 测试多个指定测试点
-python3 tester.py samples/02-add.in samples/03-commit.in
+# 运行指定的一组测试点
+python3 tester.py samples/1-*.in
 
-# 测试编号 01～05 （可以用正则表达式测试任意多组数据点）
-python3 tester.py samples/0[1-5]-*.in
+# 显示失败测试的详细信息
+python3 tester.py --show=all samples/3-status-10.in
 ```
 
-注意`tester.py`默认调用的是`./build/`文件夹下的可执行文件，你需要先编译后再调试。这套学生自测包含 21 个相互独立的测试，覆盖基础功能以及 Bonus 中的 remote、diff 和 show；每个测试只依赖同一或更早子任务已经规定的功能，不会要求后续子任务。
+在项目根目录运行 `make -C testing check` 也会运行全部测试点。
 
-该测试仅供大家自行简单测试，很多的边界情况是没有考虑到的，更希望大家可以自行调试
-
-学生自测不计算课程分数，只输出通过数量；正式评分仍以 ACMOJ 的隐藏测试为准。命令输出不匹配时，`testing/out.txt`会保存 expected、actual 和 unified diff。如果全部通过，终端输出如下：
-
-```text
-01-init: OK
-02-add: OK
-03-commit: OK
-04-rm: OK
-05-ignore: OK
-06-log: OK
-07-global-log: OK
-08-tag: OK
-09-checkout: OK
-10-status: OK
-11-branch: OK
-12-rm-branch: OK
-13-reset: OK
-14-merge: OK
-15-add-remote: OK
-16-rm-remote: OK
-17-fetch: OK
-18-push: OK
-19-pull: OK
-20-diff: OK
-21-show: OK
-
-Ran 21 tests.
-Correct: 21/21
-All tests passed!
-```
+测试点按 Subtask 1～5、Complement 和 Bonus 分组。前置测试失败时，依赖它的测试会显示 `SKIPPED`；单独运行某个测试时，脚本也会执行其前置测试，但只把指定测试计入本次分数。Bonus 的 remote 与 diff + show 各有 15 个原始分，最终只计入得分较高的一类。测试失败时，`testing/out.txt` 会记录 expected、actual 和 unified diff。本地与 OJ 使用相同测试内容，但最终成绩仍以 OJ 的构建与运行结果为准。
 
 ### 评分规则
 
 > 注：下方为**暂定**的评分规则，可能会有所更改，但不影响项目的实现
 
-每个测试点的原始分直接计入所属功能类别；Bonus 分别统计`remote`和`diff + show`两个 20 分类别，并取二者较高值计入最终得分。各组分数总和如下：
+每个测试点均为正整数分，原始分直接计入所属功能类别；Bonus 分别统计`remote`和`diff + show`两个 15 分类别，并取二者较高值计入最终得分。各组分数总和如下：
 
 `Subtask 1`: 10 `pts`
 
 `Subtask 2`: 10 `pts`
 
-`Subtask 3`: 20 `pts`
+`Subtask 3`: 15 `pts`
 
-`Subtask 4`: 20 `pts`
+`Subtask 4`: 15 `pts`
 
-`Subtask 5`: 20 `pts`
+`Subtask 5`: 15 `pts`
 
 `Complement`: 10 `pts`
 
-`Bonus`: 20 `pts`（`remote`与`diff + show`各提供 20 个原始分，最终取两个类别得分的较高者）
+`Bonus`: 15 `pts`（`remote`与`diff + show`各提供 15 个原始分，最终取两个类别得分的较高者）
 
 **说明：** **`Complement`** 不引入新命令，而是检查前面功能与后续基础功能组合使用时的完整行为。例如，一些早期命令只能借助`status`或`checkout`才能从黑盒角度验证其状态是否正确；`log`的第一父遍历和`global-log`的全部父遍历也需要在完成`merge`后才能构造完整场景，因此这些检查不能放入更早的 Subtask。建议完成 Basic 后再集中检查本组；如果 Basic 的功能和边界情况均已正确实现，那么不需要为 Complement 额外添加专用功能就可以自然通过。
 
-对于 Code Style 部分，我们会根据你的`DESIGN.md`以及代码布局与风格进行给分，包括但不限于适当的注释，合理的空行，优秀的板块设计等等，占 5 `pts`。优秀者可适度给 6-7 `pts`，用于弥补其他部分的失分（总分封顶见下文）。
+设计文档与码风共 5 `pts`。我们会根据你的`DESIGN.md`以及代码布局与风格评分，包括适当的注释、合理的空行和清晰的模块设计等。
 
-对于 Code Review 部分，占 10 `pts`.
+Code Review 占 15 `pts`。
 
-本项目的总分封顶为 125 `pts`（110 + Code Style 5 + Code Review 10；Code Style 的 6-7 分仅用于弥补其他部分的失分，总分不超过 125）。
+本项目总分为 110 `pts`：Basic（Subtask 1～5 与 Complement）75 分、Bonus 15 分、设计文档与码风 5 分、Code Review 15 分。
 
 ## Acknowledgement
 

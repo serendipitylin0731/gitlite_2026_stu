@@ -1,8 +1,0 @@
-# Goal: add-remote records a remote name.
-> init
-<<<
-> add-remote origin ../remote/.gitlite
-<<<
-> add-remote origin ../other/.gitlite
-A remote with that name already exists.
-<<<

@@ -1,4 +1,5 @@
-import sys, re, shlex, difflib
+import sys, re, shlex, difflib, time
+from datetime import datetime
 from subprocess import \
      check_output, PIPE, STDOUT, DEVNULL, CalledProcessError, TimeoutExpired
 from os.path import abspath, basename, dirname, exists, isfile, join, splitext
@@ -48,6 +49,8 @@ The instructions each have one of the following forms:
           intended to let you set up remote repositories.
    T N    Set the timeout for gitlite commands in the rest of this test to N
           seconds.
+   P N    Pause the test for N seconds. This is useful when distinct commit
+          timestamps are required.
    + NAME F
           Copy the contents of src/F into a file named NAME.
    N NAME F
@@ -63,8 +66,10 @@ The instructions each have one of the following forms:
           Run gitlite with COMMAND ARGUMENTS as its parameters. Compare
           its output with LINE1, LINE2, etc., reporting an error if there is
           "sufficient" discrepancy. The <<< delimiter may be followed by
-          an asterisk (*), in which case, the preceding lines are treated as 
-          Python regular expressions and matched accordingly. The directory
+          an asterisk (*), in which case, the preceding lines are treated as
+          Python regular expressions and matched accordingly, or G, in which
+          case they are expected commit IDs for a strictly checked global-log.
+          The directory
           The executable is found from the project containing tester.py unless
           --progdir is provided.
    = NAME F
@@ -84,8 +89,10 @@ The instructions each have one of the following forms:
           taken to be a raw Python string (as in r"VALUE").  Substitutions are
           first applied to VALUE.
    A PREFIX_VAR ASSET_VAR ID ASSET [ID ASSET ...]
-          Find a one-character prefix shared by at least two IDs. Store that
-          prefix and the asset paired with the lexicographically first match.
+          Find the shortest prefix shared by at least two candidate IDs. Store
+          that prefix and the asset paired with the lexicographically first
+          match. An ID paired with !exclude participates only as an excluded
+          object: the chosen prefix must not match it.
 
 For each TEST.in, reports at most one error.  Without the --show option,
 simply indicates tests passed and failed. If N is positive, also prints details
@@ -101,9 +108,191 @@ TIMEOUT = 10
 # C++ executable configuration
 CPP_EXECUTABLE = "gitlite"
 
-# These are unweighted student-facing smoke tests.  Each requested file counts
-# as one correct or incorrect test; no course score is calculated here.
-TEST_DEPENDENCIES = {}
+# Test scores mapping
+TEST_SCORES = {
+    "1-init": 1,
+    "1-add-01": 1,
+    "1-add-02": 1,
+    "1-add-03": 1,
+    "1-commit-01": 1,
+    "1-commit-02": 1,
+    "1-rm": 1,
+    "1-robust": 2,
+    "1-ignore-add": 1,
+    "2-log": 2,
+    "2-global-log": 2,
+    "2-tag-01": 2,
+    "2-tag-02": 2,
+    "2-robust": 2,
+    "3-status-01": 1,
+    "3-status-02": 1,
+    "3-status-03": 1,
+    "3-status-04": 1,
+    "3-status-05": 1,
+    "3-status-06": 1,
+    "3-status-07": 1,
+    "3-status-08": 1,
+    "3-status-09": 1,
+    "3-branch-01": 1,
+    "3-branch-02": 1,
+    "3-rm-branch": 1,
+    "3-robust": 1,
+    "3-status-10": 1,
+    "3-status-11": 1,
+    "4-checkout-01": 1,
+    "4-checkout-02": 1,
+    "4-checkout-03": 1,
+    "4-checkout-04": 1,
+    "4-checkout-05": 1,
+    "4-checkout-06": 1,
+    "4-checkout-07": 1,
+    "4-checkout-08": 1,
+    "4-checkout-09": 1,
+    "4-checkout-10": 1,
+    "4-checkout-11": 1,
+    "4-reset-01": 1,
+    "4-reset-02": 1,
+    "4-reset-03": 1,
+    "4-robust": 1,
+    "5-merge-01": 1,
+    "5-merge-02": 2,
+    "5-merge-03": 2,
+    "5-merge-04": 1,
+    "5-merge-05": 2,
+    "5-merge-06": 1,
+    "5-merge-07": 2,
+    "5-merge-08": 1,
+    "5-merge-09": 1,
+    "5-merge-10": 1,
+    "5-robust": 1,
+    "Comp-init": 1,
+    "Comp-add-01": 1,
+    "Comp-add-02": 1,
+    "Comp-commit-01": 1,
+    "Comp-commit-02": 1,
+    "Comp-ignore-add": 1,
+    "Comp-rm": 1,
+    "Comp-global-log": 1,
+    "Comp-log": 1,
+    "Comp-robust": 1,
+    "Bonus-remote-01": 3,
+    "Bonus-remote-02": 4,
+    "Bonus-remote-03": 4,
+    "Bonus-remote-04": 2,
+    "Bonus-remote-robust": 2,
+    "Bonus-diff-01": 2,
+    "Bonus-diff-02": 3,
+    "Bonus-diff-03": 2,
+    "Bonus-show-01": 2,
+    "Bonus-show-02": 2,
+    "Bonus-show-03": 2,
+    "Bonus-diff-robust": 2
+}
+
+# Subtask groupings
+SUBTASKS = {
+    "Subtask1(init,add,commit,rm)": ["1-init", "1-add-01", "1-add-02", "1-commit-01", "1-commit-02", "1-rm", "1-add-03", "1-robust", "1-ignore-add"],
+    "Subtask2(log,global-log,tag)": ["2-log", "2-global-log", "2-tag-01", "2-tag-02", "2-robust"],
+    "Subtask3(status,branch,rm-branch)": ["3-status-01", "3-status-02", "3-status-03", "3-status-04", "3-status-05", "3-status-06", "3-status-07", "3-status-08", "3-status-09", "3-status-10", "3-status-11", "3-branch-01", "3-branch-02", "3-rm-branch", "3-robust"],
+    "Subtask4(checkout,reset)": ["4-checkout-01", "4-checkout-02", "4-checkout-03", "4-checkout-04", "4-checkout-05", "4-checkout-06", "4-checkout-07", "4-checkout-08", "4-checkout-09", "4-checkout-10", "4-checkout-11", "4-reset-01", "4-reset-02", "4-reset-03", "4-robust"],
+    "Subtask5(merge)": ["5-merge-01", "5-merge-02", "5-merge-03", "5-merge-04", "5-merge-05", "5-merge-06", "5-merge-07", "5-merge-08", "5-merge-09", "5-merge-10", "5-robust"],
+    "Complement": ["Comp-init", "Comp-add-01", "Comp-add-02", "Comp-commit-01", "Comp-commit-02", "Comp-ignore-add", "Comp-rm", "Comp-log", "Comp-global-log", "Comp-robust"],
+    "Bonus": ["Bonus-remote-01", "Bonus-remote-02", "Bonus-remote-03", "Bonus-remote-04", "Bonus-remote-robust", "Bonus-diff-01", "Bonus-diff-02", "Bonus-diff-03", "Bonus-show-01", "Bonus-show-02", "Bonus-show-03", "Bonus-diff-robust"]
+}
+
+# Bonus has two independent 15-point choices. Its final score is the larger
+# category score; points from the two choices are never added together.
+SUBTASK_CAPS = {"Bonus": 15}
+BONUS_CATEGORIES = {
+    "Remote": [name for name in SUBTASKS["Bonus"] if "-remote-" in name],
+    "Diff+Show": [name for name in SUBTASKS["Bonus"]
+                  if "-diff-" in name or "-show-" in name],
+}
+
+# Keep per-test result labels aligned within each subtask.  The colon is part
+# of the padded name column; two spaces separate it from the status column.
+TEST_TO_SUBTASK = {
+    test_name: subtask_name
+    for subtask_name, test_names in SUBTASKS.items()
+    for test_name in test_names
+}
+SUBTASK_TEST_NAME_WIDTHS = {
+    subtask_name: max(map(len, test_names))
+    for subtask_name, test_names in SUBTASKS.items()
+}
+
+
+def format_test_status(test_name, status):
+    subtask_name = TEST_TO_SUBTASK.get(test_name)
+    name_width = SUBTASK_TEST_NAME_WIDTHS.get(subtask_name, len(test_name))
+    return "{:<{}}  {}".format(test_name + ":", name_width + 1, status)
+
+# Tests are isolated, so dependencies are grading prerequisites rather than
+# shared setup.  The runner topologically orders them and skips a dependent
+# test when any prerequisite fails or is skipped.
+TEST_DEPENDENCIES = {
+    "1-add-01": ["1-init"], "1-add-02": ["1-init"],
+    "1-add-03": ["1-commit-02", "1-rm"],
+    "1-ignore-add": ["1-commit-02"],
+    "1-commit-01": ["1-init"], "1-commit-02": ["1-add-01"],
+    "1-rm": ["1-commit-02"],
+    "2-log": ["1-commit-02"], "2-global-log": ["2-log"],
+    "2-tag-01": ["1-commit-02"],
+    "2-tag-02": ["2-log", "2-tag-01"],
+    "2-robust": ["2-log", "2-global-log", "2-tag-01"],
+    "3-status-01": ["1-init"], "3-status-02": ["1-commit-02", "1-rm"],
+    "3-status-03": ["1-add-01"], "3-status-04": ["1-commit-02", "1-rm"],
+    "3-status-05": ["1-rm"], "3-status-06": ["1-commit-02", "1-rm"],
+    "3-status-07": ["1-commit-02", "1-rm"],
+    "3-status-09": ["1-add-01", "1-commit-02"],
+    "3-branch-01": ["3-status-10"], "3-branch-02": ["3-branch-01"],
+    "3-rm-branch": ["3-branch-01"],
+    "3-robust": ["3-status-01", "3-branch-01", "3-rm-branch"],
+    "3-status-10": ["1-commit-02", "1-rm", "3-status-01"],
+    "3-status-11": ["1-ignore-add", "2-tag-01", "3-status-01", "3-status-10"],
+    "4-checkout-01": ["1-commit-02"],
+    "4-checkout-02": ["2-log", "4-checkout-01"],
+    "4-checkout-03": ["2-log", "4-checkout-02"],
+    "4-checkout-04": ["2-log", "3-status-10", "4-checkout-02"],
+    "4-checkout-05": ["2-log", "3-status-01", "4-checkout-02"],
+    "4-checkout-06": ["2-log", "2-tag-01", "3-branch-01", "3-status-10", "4-checkout-02"],
+    "4-checkout-07": ["1-commit-02", "3-branch-01", "3-status-10"],
+    "4-checkout-08": ["2-log", "4-checkout-07"],
+    "4-checkout-09": ["3-rm-branch", "4-checkout-07"],
+    "4-checkout-10": ["1-ignore-add", "1-rm", "3-status-11", "4-checkout-07"],
+    "4-checkout-11": ["3-branch-02", "4-checkout-07"],
+    "4-reset-01": ["1-rm", "2-log", "4-checkout-07"],
+    "4-reset-02": ["3-status-11", "4-reset-01"],
+    "4-reset-03": ["2-tag-01", "4-reset-01"],
+    "4-robust": ["4-checkout-01", "4-reset-01"],
+    "5-merge-01": ["1-rm", "2-log", "4-checkout-07"],
+    "5-merge-02": ["5-merge-01"], "5-merge-03": ["5-merge-01"],
+    "5-merge-04": ["3-status-11", "5-merge-01"], "5-merge-05": ["5-merge-01"],
+    "5-merge-06": ["5-merge-01"], "5-merge-07": ["5-merge-02"],
+    "5-merge-08": ["5-merge-01"], "5-merge-09": ["5-merge-01"],
+    "5-merge-10": ["5-merge-01"],
+    "5-robust": ["5-merge-01"],
+    "Comp-init": ["1-init", "2-log", "3-status-01"],
+    "Comp-add-01": ["1-add-01", "1-add-02", "1-commit-02", "1-rm", "3-status-01"],
+    "Comp-add-02": ["1-add-03", "1-commit-02", "1-rm", "3-status-10"],
+    "Comp-commit-01": ["1-commit-01", "2-log", "3-status-01"],
+    "Comp-commit-02": ["1-commit-02", "3-status-01", "4-checkout-01"],
+    "Comp-ignore-add": ["1-ignore-add", "3-status-01", "4-checkout-01"],
+    "Comp-rm": ["1-rm", "3-status-04"],
+    "Comp-log": ["2-log", "5-merge-01"],
+    "Comp-global-log": ["2-global-log", "2-tag-01", "3-rm-branch", "4-checkout-02", "4-checkout-07", "4-reset-01", "5-merge-01"],
+    "Comp-robust": ["1-robust", "1-rm", "2-robust", "3-status-01", "4-checkout-01"],
+    "Bonus-remote-01": ["2-global-log", "4-reset-01"], "Bonus-remote-02": ["Bonus-remote-01", "5-merge-01"],
+    "Bonus-remote-03": ["Bonus-remote-01"], "Bonus-remote-04": ["Bonus-remote-01"],
+    "Bonus-remote-robust": ["Bonus-remote-01"],
+    "Bonus-diff-01": ["1-commit-02", "3-status-10", "4-checkout-01"],
+    "Bonus-diff-02": ["1-rm", "2-log", "2-tag-01", "Bonus-diff-01"],
+    "Bonus-diff-03": ["2-log", "2-tag-01", "Bonus-diff-01"],
+    "Bonus-show-01": ["2-log", "3-status-10", "Bonus-diff-01"],
+    "Bonus-show-02": ["2-tag-02", "Bonus-show-01"],
+    "Bonus-show-03": ["5-merge-01", "Bonus-show-01"],
+    "Bonus-diff-robust": ["Bonus-diff-03", "Bonus-show-02"],
+}
 
 DEBUG = False
 DEBUG_MSG = \
@@ -225,6 +414,7 @@ def canonicalize(s):
         return None
     return re.sub('\r', '', s)
 
+
 def fileExists(f, dir):
     return exists(join(dir, f))
 
@@ -301,6 +491,51 @@ def correctProgramOutput(expected, actual, last_groups, is_regexp):
         last_groups[:] = (actual,)
     return True
 
+
+def correctGlobalLogOutput(expected, actual, last_groups):
+    """Check exact commit set, uniqueness, and required global-log ordering."""
+    require_tie = "@require-timestamp-tie" in (line.strip() for line in expected)
+    wanted = [line.strip() for line in expected
+              if line.strip() and line.strip() != "@require-timestamp-tie"]
+    if any(re.fullmatch(r'[0-9a-f]{40}', commit_id) is None for commit_id in wanted):
+        raise ValueError("bad commit id in global-log expectation")
+    if len(wanted) != len(set(wanted)):
+        raise ValueError("duplicate commit id in global-log expectation")
+
+    actual = canonicalize(actual)
+    header = re.compile(r'(?m)^===\ncommit ([0-9a-f]{40})\n')
+    starts = list(header.finditer(actual))
+    if not starts or starts[0].start() != 0:
+        return False
+
+    entries = []
+    date_pattern = re.compile(
+        r'(?m)^Date: [A-Za-z]{3} [A-Za-z]{3} \d{2} '
+        r'\d{2}:\d{2}:\d{2} \d{4} [+-]\d{4}$')
+    for index, match in enumerate(starts):
+        end = starts[index + 1].start() if index + 1 < len(starts) else len(actual)
+        block = actual[match.start():end]
+        dates = date_pattern.findall(block)
+        if len(dates) != 1:
+            return False
+        try:
+            timestamp = datetime.strptime(
+                dates[0][len("Date: "):], "%a %b %d %H:%M:%S %Y %z").timestamp()
+        except ValueError:
+            return False
+        entries.append((match.group(1), timestamp))
+
+    actual_ids = [commit_id for commit_id, _ in entries]
+    if len(actual_ids) != len(set(actual_ids)) or set(actual_ids) != set(wanted):
+        return False
+    if require_tie and len({timestamp for _, timestamp in entries}) == len(entries):
+        return False
+    ordered = sorted(entries, key=lambda entry: (-entry[1], entry[0]))
+    if entries != ordered:
+        return False
+    last_groups[:] = (actual,)
+    return True
+
 def reportDetails(test, included_files, line_num):
     if show is None:
         return
@@ -345,6 +580,8 @@ def line_reader(f, prefix):
 def doTest(test):
     last_groups = []
     base = splitext(basename(test))[0]
+    test_score = TEST_SCORES.get(base, 0)
+    # 不再输出单个测试的进度信息
 
     if DEBUG:
         print(DEBUG_MSG)
@@ -410,6 +647,11 @@ def doTest(test):
                         timeout = float(Group(1))
                     except:
                         ValueError("bad time: {}".format(line))
+                elif Match(r'P\s*(\S+)', line):
+                    try:
+                        time.sleep(float(Group(1)))
+                    except ValueError:
+                        raise ValueError("bad pause: {}".format(line))
                 elif Match(r'\+\s*(\S+)\s+(\S+)', line):
                     doCopy(Group(1), Group(2), cdir)
                 elif Match(r'N\s+(\S+)\s+(\S+)', line):
@@ -425,8 +667,8 @@ def doTest(test):
                             raise ValueError("unterminated command: {}"
                                              .format(line))
                         L = L.rstrip()
-                        if Match(r'<<<(\*?)', L):
-                            is_regexp = Group(1)
+                        if Match(r'<<<([*G]?)\Z', L):
+                            comparison = Group(1)
                             break
                         expected.append(do_substs(L))
                     msg, out = doExecute(cmnd, cdir, timeout, line_num)
@@ -434,43 +676,53 @@ def doTest(test):
                         if out:
                             print(re.sub(r'(?m)^', '- ', chop_nl(out)))
                     if msg == "OK":
-                        if not correctProgramOutput(expected, out, last_groups,
-                                                    is_regexp):
+                        if comparison == 'G':
+                            correct = correctGlobalLogOutput(expected, out, last_groups)
+                        else:
+                            correct = correctProgramOutput(expected, out, last_groups,
+                                                           comparison == '*')
+                        if not correct:
                             write_file(test, cmnd, expected, out)
                             reportDetails(test, included_files, line_num)
                             msg = "incorrect output"
                     if msg != "OK":
                         if msg != "incorrect output":
                             write_file(test, cmnd, ["command completed"], msg)
-                        print("{}: FAILED ({})".format(base, msg))
-                        return False
+                        print(format_test_status(
+                            base, "FAILED ({}) (0pts/{}pts)".format(msg, test_score)))
+                        return False, test_score
                 elif Match(r'=\s*(\S+)\s+(\S+)', line):
                     if not correctFileOutput(Group(1), Group(2), cdir):
                         write_file_comparison(test, Group(1), Group(2), cdir, False)
-                        print("{}: FAILED (file {} has incorrect content)"
-                              .format(base, Group(1)))
+                        print(format_test_status(
+                            base, "FAILED (file {} has incorrect content) (0pts/{}pts)"
+                            .format(Group(1), test_score)))
                         reportDetails(test, included_files, line_num)
-                        return False
+                        return False, test_score
                 elif Match(r'B\s+(\S+)\s+(\S+)', line):
                     if not correctFileBytes(Group(1), Group(2), cdir):
                         write_file_comparison(test, Group(1), Group(2), cdir, True)
-                        print("{}: FAILED (file {} differs byte-for-byte)"
-                              .format(base, Group(1)))
+                        print(format_test_status(
+                            base, "FAILED (file {} differs byte-for-byte) (0pts/{}pts)"
+                            .format(Group(1), test_score)))
                         reportDetails(test, included_files, line_num)
-                        return False
+                        return False, test_score
                 elif Match(r'\*\s*(\S+)', line):
                     if fileExists(Group(1), cdir):
                         write_file(test, "absence of " + Group(1), ["file absent"], "file present")
-                        print("{}: FAILED (file {} present)".format(base, Group(1)))
+                        print(format_test_status(
+                            base, "FAILED (file {} present) (0pts/{}pts)"
+                            .format(Group(1), test_score)))
                         reportDetails(test, included_files, line_num)
-                        return False
+                        return False, test_score
                 elif Match(r'E\s*(\S+)', line):
                     if not fileExists(Group(1), cdir):
                         write_file(test, "existence of " + Group(1), ["file present"], "file absent")
-                        print("{}: FAILED (file or directory {} not present)"
-                              .format(base, Group(1)))
+                        print(format_test_status(
+                            base, "FAILED (file or directory {} not present) (0pts/{}pts)"
+                            .format(Group(1), test_score)))
                         reportDetails(test, included_files, line_num)
-                        return False
+                        return False, test_score
                 elif Match(r'(?s)D\s*([a-zA-Z_][a-zA-Z_0-9]*)\s*"(.*)"\s*$', line):
                     defns[Group(1)] = Group(2)
                 elif line.startswith('A '):
@@ -479,22 +731,38 @@ def doTest(test):
                         raise ValueError("bad ambiguous-prefix instruction")
                     prefix_var, asset_var = parts[1], parts[2]
                     pairs = list(zip(parts[3::2], parts[4::2]))
-                    buckets = {}
+                    candidates = []
+                    excluded = []
                     for commit_id, asset in pairs:
                         if not re.fullmatch(r'[0-9a-f]{40}', commit_id):
                             raise ValueError("bad commit id in A instruction")
-                        buckets.setdefault(commit_id[0], []).append((commit_id, asset))
-                    choices = sorted(key for key, values in buckets.items() if len(values) >= 2)
-                    if not choices:
+                        (excluded if asset == '!exclude' else candidates).append(
+                            (commit_id, asset))
+                    choice = None
+                    for prefix_length in range(1, 40):
+                        buckets = {}
+                        for commit_id, asset in candidates:
+                            buckets.setdefault(commit_id[:prefix_length], []).append(
+                                (commit_id, asset))
+                        choices = sorted(
+                            prefix for prefix, values in buckets.items()
+                            if len(values) >= 2
+                            and not any(commit_id.startswith(prefix)
+                                        for commit_id, _ in excluded))
+                        if choices:
+                            prefix = choices[0]
+                            choice = (prefix, min(buckets[prefix]))
+                            break
+                    if choice is None:
                         raise ValueError("A instruction has no ambiguous prefix")
-                    prefix = choices[0]
-                    commit_id, asset = min(buckets[prefix])
+                    prefix, (commit_id, asset) = choice
                     defns[prefix_var] = prefix
                     defns[asset_var] = asset
                 else:
                     raise ValueError("bad test line at {}".format(line_num))
-        print("{}: OK".format(base))
-        return True
+        print(format_test_status(
+            base, "OK ({}pts/{}pts)".format(test_score, test_score)))
+        return True, test_score
     finally:
         if verbose:
             print("Testing directory: {}".format(tmpdir))
@@ -573,7 +841,7 @@ if __name__ == "__main__":
             requested_paths[splitext(basename(path))[0]] = path
 
     # Include prerequisites even when the caller asks for a single advanced
-    # test. Only explicitly requested tests contribute to the correct count.
+    # test. Only explicitly requested tests contribute to the reported score.
     search_dirs = list(dict.fromkeys(dirname(path) for path in files))
     all_paths = dict(requested_paths)
     ordered_names = []
@@ -604,7 +872,15 @@ if __name__ == "__main__":
         ordered_names.append(name)
 
     try:
-        for name in requested_paths:
+        grouped_request_order = [
+            name
+            for test_names in SUBTASKS.values()
+            for name in test_names
+            if name in requested_paths
+        ]
+        grouped_request_order.extend(
+            name for name in requested_paths if name not in TEST_TO_SUBTASK)
+        for name in grouped_request_order:
             visit_test(name)
     except ValueError as excp:
         print("FAILED ({})".format(excp), file=sys.stderr)
@@ -614,14 +890,29 @@ if __name__ == "__main__":
     errs = 0
     fails = 0
     skips = 0
-    correct = 0
+    total_score = 0
+    earned_score = 0
     failed_tests = []
     skipped_tests = []
     outcomes = {}
 
+    # Track subtask scores
+    subtask_scores = {}
+    for subtask_name, test_list in SUBTASKS.items():
+        subtask_scores[subtask_name] = {'earned': 0, 'total': 0, 'tests': []}
+
+    for test_name in requested_paths:
+        test_points = TEST_SCORES.get(test_name, 0)
+        total_score += test_points
+        for subtask_name, test_list in SUBTASKS.items():
+            if test_name in test_list:
+                subtask_scores[subtask_name]['total'] += test_points
+                break
+
     for test_name in ordered_names:
         test = all_paths[test_name]
         requested = test_name in requested_paths
+        test_points = TEST_SCORES.get(test_name, 0)
         failed_dependency = next(
             (dependency for dependency in TEST_DEPENDENCIES.get(test_name, [])
              if outcomes.get(dependency) != 'passed'), None)
@@ -630,8 +921,10 @@ if __name__ == "__main__":
             if requested:
                 skips += 1
                 skipped_tests.append(test_name)
-                print("{}: SKIPPED (prerequisite {} did not pass)"
-                      .format(test_name, failed_dependency))
+                print(format_test_status(
+                    test_name,
+                    "SKIPPED (prerequisite {} did not pass) (0pts/{}pts)"
+                    .format(failed_dependency, test_points)))
             continue
         try:
             result = doTest(test)
@@ -639,23 +932,51 @@ if __name__ == "__main__":
             outcomes[test_name] = 'passed' if success else 'failed'
             if not requested:
                 continue
+            current_subtask = next(
+                (name for name, members in SUBTASKS.items() if test_name in members), None)
             if success:
-                correct += 1
+                earned_score += test_points
+                if current_subtask:
+                    subtask_scores[current_subtask]['earned'] += test_points
+                    subtask_scores[current_subtask]['tests'].append((test_name, True, test_points))
             else:
                 errs += 1
                 failed_tests.append(test_name)
+                if current_subtask:
+                    subtask_scores[current_subtask]['tests'].append((test_name, False, 0))
                 if type(show) is int:
                     show -= 1
         except ValueError as excp:
             outcomes[test_name] = 'failed'
             if requested:
-                print("{}: FAILED ({})".format(test_name, excp.args[0]))
+                print(format_test_status(
+                    test_name, "FAILED ({})".format(excp.args[0])))
                 fails += 1
                 failed_tests.append(test_name)
 
+    # Every non-Bonus raw point is one final point. Bonus credits whichever of
+    # its two independent choices earned more; partial scores do not combine.
+    bonus_results = {
+        test_name: points
+        for test_name, passed, points in subtask_scores["Bonus"]['tests']
+        if passed
+    }
+    bonus_category_scores = {
+        category: sum(bonus_results.get(test_name, 0) for test_name in tests)
+        for category, tests in BONUS_CATEGORIES.items()
+    }
+    bonus_credited = max(bonus_category_scores.values(), default=0)
+    earned_score = sum(
+        score['earned'] for name, score in subtask_scores.items() if name != "Bonus"
+    ) + bonus_credited
+
     print()
     print("Ran {} tests.".format(num_tests))
-    print("Correct: {}/{}".format(correct, num_tests))
+    print("Bonus category scores: {}; credited {} pts (higher category).".format(
+        ", ".join("{} {} pts".format(name, score)
+                  for name, score in bonus_category_scores.items()),
+        bonus_credited))
+    print("Total Score: {:g} pts".format(earned_score))
     
     if errs == fails == skips == 0:
         print("All tests passed!")

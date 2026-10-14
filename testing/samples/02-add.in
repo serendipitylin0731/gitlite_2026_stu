@@ -1,9 +1,0 @@
-# Goal: add accepts an existing working file and rejects a missing one.
-> init
-<<<
-+ f.txt wug.txt
-> add f.txt
-<<<
-> add missing.txt
-File does not exist.
-<<<
